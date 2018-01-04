@@ -16,8 +16,8 @@ func newArgsCollector(files filesList) argsCollector {
 
 func (c argsCollector) collectsCandidates() []candidateFile {
 	cs := make([]candidateFile, len(c.files))
-	for _, f := range c.files {
-		cs = append(cs, candidateFile(f))
+	for i, f := range c.files {
+		cs[i] = candidateFile(f)
 	}
 	return cs
 }
