@@ -17,16 +17,16 @@ type ownershipScore struct {
 type ownershipSurvey map[string]ownershipScore
 
 type fileSurveyResult struct {
-	file   string
+	file   candidateFile
 	result ownershipSurvey
 }
 
 type surveyResult struct {
-	Files map[string]ownershipSurvey `json:"files"`
+	Files map[candidateFile]ownershipSurvey `json:"files"`
 }
 
 type repoScanner interface {
-	scan(repo string, files filesList) surveyResult
+	scan(repo string, collector candidatesCollector) surveyResult
 }
 
 type concurrentRepoScanner struct {
@@ -42,14 +42,15 @@ func newConcurrentRepoScanner(maxConcurrency int, maxCommits int) concurrentRepo
 	return scanner
 }
 
-func (s concurrentRepoScanner) scan(repo string, files filesList) surveyResult {
+func (s concurrentRepoScanner) scan(repo string, collector candidatesCollector) surveyResult {
 	semaphore := make(chan int, s.maxConcurrency)
+	files := collector.collectsCandidates()
 	ch := make(chan *fileSurveyResult, len(files))
 	var wg sync.WaitGroup
 	go func(ch chan *fileSurveyResult) {
 		for _, argFile := range files {
 			wg.Add(1)
-			go func(ch chan *fileSurveyResult, file string) {
+			go func(ch chan *fileSurveyResult, file candidateFile) {
 				defer wg.Done()
 				semaphore <- 1
 				ret, err := s.scanFile(repo, file)
@@ -66,7 +67,7 @@ func (s concurrentRepoScanner) scan(repo string, files filesList) surveyResult {
 	}(ch)
 
 	res := surveyResult{
-		Files: map[string]ownershipSurvey{},
+		Files: map[candidateFile]ownershipSurvey{},
 	}
 	for fileRet := range ch {
 		res.Files[fileRet.file] = fileRet.result
@@ -74,9 +75,9 @@ func (s concurrentRepoScanner) scan(repo string, files filesList) surveyResult {
 	return res
 }
 
-func (s concurrentRepoScanner) scanFile(repoPath string, file string) (ownershipSurvey, error) {
+func (s concurrentRepoScanner) scanFile(repoPath string, file candidateFile) (ownershipSurvey, error) {
 	outBuf := new(bytes.Buffer)
-	cmd := exec.Command("git", "-C", repoPath, "log", "-C", "-M", "--no-merges", "-n", fmt.Sprintf("%d", s.maxCommits), "--format=%aN", file)
+	cmd := exec.Command("git", "-C", repoPath, "log", "-C", "-M", "--no-merges", "-n", fmt.Sprintf("%d", s.maxCommits), "--format=%aN", fmt.Sprintf("%s", file))
 	cmd.Stdout = outBuf
 	err := cmd.Run()
 	if err != nil {

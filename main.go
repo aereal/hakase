@@ -37,8 +37,9 @@ func main() {
 	}
 
 	cpus := runtime.NumCPU()
+	collector := newArgsCollector(args.files)
 	scanner := newConcurrentRepoScanner(cpus*2, args.maxCommits)
-	res := scanner.scan(args.repoPath, args.files)
+	res := scanner.scan(args.repoPath, collector)
 	jsonRet, err := json.Marshal(res)
 	if err != nil {
 		log.Fatalf("error: %s", err)
