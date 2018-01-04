@@ -21,3 +21,18 @@ func (c argsCollector) collectsCandidates() []candidateFile {
 	}
 	return cs
 }
+
+type pullRequestCollector struct {
+	pullRequestURL string
+}
+
+func newPullRequestCollector(pullRequestURL string) pullRequestCollector {
+	return pullRequestCollector{
+		pullRequestURL: pullRequestURL,
+	}
+}
+
+func (c pullRequestCollector) collectsCandidates() []candidateFile {
+	cs := []candidateFile{}
+	return cs
+}
