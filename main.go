@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"sync"
 )
 
 type arguments struct {
@@ -38,45 +37,14 @@ func main() {
 	}
 
 	cpus := runtime.NumCPU()
-	procs := cpus * 2
-	res := run(procs, args)
+	collector := newArgsCollector(args.files)
+	scanner := newConcurrentRepoScanner(cpus*2, args.maxCommits)
+	res := scanner.scan(args.repoPath, collector)
 	jsonRet, err := json.Marshal(res)
 	if err != nil {
 		log.Fatalf("error: %s", err)
 	}
 	fmt.Fprintf(os.Stdout, string(jsonRet))
-}
-
-func run(maxConcurrency int, args *arguments) surveyResult {
-	semaphore := make(chan int, maxConcurrency)
-	ch := make(chan *fileSurveyResult, len(args.files))
-	var wg sync.WaitGroup
-	go func(ch chan *fileSurveyResult) {
-		for _, argFile := range args.files {
-			wg.Add(1)
-			go func(ch chan *fileSurveyResult, file string) {
-				defer wg.Done()
-				semaphore <- 1
-				ret, err := scanFile(args.repoPath, file, args.maxCommits)
-				fileRet := &fileSurveyResult{file: file, result: ret}
-				if err != nil {
-					log.Printf("error: %s", err)
-				}
-				ch <- fileRet
-				<-semaphore
-			}(ch, argFile)
-		}
-		wg.Wait()
-		close(ch)
-	}(ch)
-
-	res := surveyResult{
-		Files: map[string]ownershipSurvey{},
-	}
-	for fileRet := range ch {
-		res.Files[fileRet.file] = fileRet.result
-	}
-	return res
 }
 
 func parseArgs() (*arguments, error) {
