@@ -39,7 +39,6 @@ func main() {
 
 	var collector candidatesCollector
 	if len(args.pullRequestURL) != 0 {
-		log.Println("collects from Pull Request")
 		pr, err := newPullRequest(args.pullRequestURL)
 		if err != nil {
 			log.Fatalf("Invalid Pull Request URL: %s", err)
@@ -55,7 +54,6 @@ func main() {
 		gh := newGitHubClient(apiBase, ghToken)
 		collector = newPullRequestCollector(gh, pr)
 	} else {
-		log.Println("collects from specified files")
 		collector = newArgsCollector(args.files)
 	}
 	cpus := runtime.NumCPU()
