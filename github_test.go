@@ -41,3 +41,33 @@ func TestNewPullRequest(t *testing.T) {
 		}
 	}
 }
+
+func TestGetGitHubAPIBase(t *testing.T) {
+	type expectation struct {
+		input    string
+		expected string
+	}
+	expectations := []expectation{
+		expectation{
+			input:    "https://github.com",
+			expected: "https://api.github.com",
+		},
+		expectation{
+			input:    "https://github.com/aereal/hakase/pulls/1",
+			expected: "https://api.github.com",
+		},
+		expectation{
+			input:    "https://ghe.example.com",
+			expected: "https://ghe.example.com/api/v3",
+		},
+	}
+	for _, expct := range expectations {
+		got, err := getGitHubAPIBase(expct.input)
+		if err != nil {
+			t.Errorf("%s must be determined but error occurred: %s", expct.input, err)
+		}
+		if got != expct.expected {
+			t.Errorf("baseURL from %s must be %s but %s got", expct.input, expct.expected, got)
+		}
+	}
+}

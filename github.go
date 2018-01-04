@@ -28,3 +28,15 @@ func newPullRequest(rawurl string) (*pullRequest, error) {
 	}
 	return pr, nil
 }
+
+func getGitHubAPIBase(rawurl string) (string, error) {
+	parsed, err := url.Parse(rawurl)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Hostname() == "github.com" {
+		return "https://api.github.com", nil
+	} else {
+		return fmt.Sprintf("%s://%s/api/v3", parsed.Scheme, parsed.Hostname()), nil
+	}
+}
