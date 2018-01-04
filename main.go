@@ -40,7 +40,20 @@ func main() {
 	var collector candidatesCollector
 	if len(args.pullRequestURL) != 0 {
 		log.Println("collects from Pull Request")
-		collector = newPullRequestCollector(args.pullRequestURL)
+		pr, err := newPullRequest(args.pullRequestURL)
+		if err != nil {
+			log.Fatalf("Invalid Pull Request URL: %s", err)
+		}
+		ghToken, err := getConfig("hakase.token")
+		if err != nil || ghToken == "" {
+			log.Fatalf("Access token must be stored config with key: hakase.token")
+		}
+		apiBase, err := getGitHubAPIBase(args.pullRequestURL)
+		if err != nil {
+			log.Fatalf("Cannot determine GitHub API base: %s", err)
+		}
+		gh := newGitHubClient(apiBase, ghToken)
+		collector = newPullRequestCollector(gh, pr)
 	} else {
 		log.Println("collects from specified files")
 		collector = newArgsCollector(args.files)
